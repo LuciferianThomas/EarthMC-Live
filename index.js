@@ -8,7 +8,9 @@ const Discord = require('discord.js'),
 			striptags = require('striptags'),
 			moment = require('moment'),
       db = require('quick.db'),
-      allData = new db.table('allData')
+      allData = new db.table('allData'),
+      fetch = require('node-fetch'),
+      minecraft = require('minecraft-lib')
 
 let time = (t) => {
 	return moment(t).utcOffset(8).format("YYYY/MM/DD HH:mm:ss")
@@ -29,111 +31,7 @@ const listener = app.listen(process.env.PORT, function() {
 
 var towny = 0, classic = 0, fac = 0, server = 0, queue, update, online = {}, subs = allData.get('qsub')
 
-var townyop = {
-	host: 'earthmc.net',
-	path: '/map/up/world/earth/'
-}
 
-var classicop = {
-	host: 'earthmc.net',
-	path: '/classicmap/up/world/earth/'
-}
-
-var facop = {
-	host: 'earthmc.net',
-	path: '/map/factions/up/world/earth/'
-}
-
-var servop = {
-	host: 'minecraft-mp.com',
-	path: '/server-s133301'
-}
-
-setInterval(function () {
-	var townyreq = https.request(townyop, res => {
-		var data = '';
-		res.on('data', chunk => {
-			data += chunk
-		})
-
-		res.on('end', () => {
-			if (!data.startsWith("{")) return;
-			data = JSON.parse(data)
-			towny = data.currentcount
-			online.towny = data.players
-		})
-	})
-
-	townyreq.on('error', e => {
-		console.log(e.message)
-	})
-
-	townyreq.end()
-  
-	var classicreq = https.request(classicop, res => {
-		var data = '';
-		res.on('data', chunk => {
-			data += chunk
-		})
-
-		res.on('end', () => {
-			if (!data.startsWith("{")) return;
-			data = JSON.parse(data)
-			classic = data.currentcount
-			online.classic = data.players
-		})
-	})
-
-	classicreq.on('error', e => {
-		console.log(e.message)
-	})
-
-	classicreq.end()
-
-	var facreq = https.request(facop, res => {
-		var data = ''
-		res.on('data', chunk => {
-			data += chunk
-		})
-
-		res.on('end', () => {
-			if (!data.startsWith("{")) return;
-			data = JSON.parse(data)
-			fac = data.currentcount
-			online.fac = data.players
-		})
-	})
-
-	facreq.on('error', e => {
-		console.log(e.message)
-	})
-
-	facreq.end()
-	
-	var servreq = https.request(servop, res => {
-		var data = ''
-		res.on('data', chunk => {
-			data += chunk
-		})
-
-		res.on('end', () => {
-			var x = data.split("/255")
-			server = parseInt(x[0].substring(x[0].length, x[0].length-3))
-		})
-	})
-
-	servreq.on('error', e => {
-		console.log(e.message)
-	})
-
-	servreq.end()
-	
-	queue = server - towny - fac - classic
-	
-	update = new Date()
-  
-  subs = allData.get('qsub')
-}, 1000)
 
 const client = new Discord.Client()
 
@@ -167,6 +65,14 @@ client.on('ready', async () => {
 	
 	setInterval(async () => {
 		var l = subs.length
+    
+    let townyres = await fetch("https://earthmc.net/map/up/world/earth/")
+    let townydata = await townyres.json()
+      .catch(() => console.log(`${time()} | Connection Issues: Cannot fetch queue information.`))
+
+    let serverdata = await minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577)
+      .catch(() => console.log(`${time()} | Connection Issues: Server ping timed out.`))
+    
 		for (var i = 0; i < l; i++) {
 			if (subs[i] == '') continue;
 			var channel = client.channels.get(subs[i])
@@ -174,22 +80,46 @@ client.on('ready', async () => {
 				console.log(`${time()} | Channel ${subs[i]} not found. (${i+1}/${l})`)
 				continue;
 			}
-			await channel.send(new Discord.RichEmbed()
-				.setColor(0x00ffff)
-				.setAuthor("EarthMC Server Status", "https://earthmc.net/img/logo.png")
-				.addField("Towny Queue", `There are now ${towny > 195 ? `${Math.abs(queue)} player${Math.abs(queue) == 1 ? "" : "s"} in the EarthMC Queue.` : `${200-towny} free spot${200-towny == 1 ? "" : "s"} in EarthMC Towny.`}`)
-				.addField("Towny", `${towny >= 200 ? `**FULL** ${towny}` : towny}/200`, true)
-				.addField("Factions", `${fac >= 100 ? `**FULL** ${fac}` : fac}/100`, true)
-				.addField("Classic", `${classic >= 100 ? `**FULL** ${classic}` : classic}/100`, true)
-				.setFooter("Provided by EarthMC Live | Last Updated", client.user.avatarURL)
-				.setTimestamp(update)
+      if (!townydata) return await channel.send(
+        new Discord.RichEmbed()
+          .setColor("RED")
+          .setTitle("Connection Issues")
+          .setDescription("We are currently unable to fetch the queue information.\nPlease wait patiently until this is resolved.")
+      ).catch(() => {})
+      towny = townydata.currentcount
+      online.towny = townydata.players
+      
+      if (!serverdata) return await channel.send(
+        new Discord.RichEmbed()
+          .setColor("RED")
+          .setTitle("Timed Out")
+          .setDescription("We are currently unable to ping the server.\nPlease wait patiently until this is resolved.")
+      ).catch(() => {})
+      server = serverdata.players.online
+
+      queue = server - towny
+
+      update = moment()
+
+      subs = allData.get('qsub')
+      
+			await channel.send(
+        new Discord.RichEmbed()
+          .setColor(0x00ffff)
+          .setAuthor("EarthMC Server Status", "https://earthmc.net/img/logo.png")
+          .addField("Towny Queue", `There ${queue == 1 ? "is" : "are"} now ${towny > 195 ? `${Math.abs(queue)} player${Math.abs(queue) == 1 ? "" : "s"} in the EarthMC Queue.` : `${200-towny} free spot${200-towny == 1 ? "" : "s"} in EarthMC Towny.`}`)
+          .addField("Towny", `${towny >= 200 ? `**FULL** ${towny}` : towny}/200`, true)
+          // .addField("Factions", `${fac >= 100 ? `**FULL** ${fac}` : fac}/100`, true)
+          // .addField("Classic", `${classic >= 100 ? `**FULL** ${classic}` : classic}/100`, true)
+          .setFooter("Provided by EarthMC Live | Last Updated", client.user.avatarURL)
+          .setTimestamp(update)
 			).then(() => {
         console.log(`${time()} | Sent Queue Update ${i+1} of ${l}. (${channel.guild.name} #${channel.name})`)
       }).catch(error => {
         console.log(`${time()} | Cannot post Queue Update in ${channel.guild.name} #${channel.name} (${i+1}/${l})`)
       })
 		}
-	}, 1000*60*2.5)
+	}, 1000*60)
 })
 
 client.on('guildMemberAdd', async member => {
@@ -222,14 +152,14 @@ client.on('message', async message => {
 		if (!command) return;
 		
 		let data = { towny: towny, queue: queue, fac: fac, classic: classic, update: update, online: online, subs: subs }
-		//console.log(data)
+    
+		message.delete().catch(() => {})
     
 		try {
 			await command.run(client, message, args, data)
 		} catch (error) {
 			console.log(error)
 		}
-		message.delete().catch(() => {})
 	}
 		
 })

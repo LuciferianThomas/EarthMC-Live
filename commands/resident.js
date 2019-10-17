@@ -13,13 +13,18 @@ module.exports = {
   aliases: ["res"],
   run: async (client, message, args, indexData) => {
     let resident = args[0]
-    if (!resident.length) return message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Command Usage").setDescription("`$player <name>`"))
+    if (!resident.length)
+      return await message.channel.send(
+        new Discord.RichEmbed()
+          .setColor(0x00ffff)
+          .setTitle("Command Usage")
+          .setDescription("`/resident <name>`")
+      ).then(msg => fn.delPrompt(msg, message.author.id))
     let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
      
     let player = await minecraft.players.get(resident)
       .catch(async error => {
-        await m.delete()
-        return message.channel.send(
+        return await m.edit(
           error.message.includes("limit") ?
             new Discord.RichEmbed()
               .setColor("RED")
@@ -29,20 +34,19 @@ module.exports = {
               .setColor("RED")
               .setTitle("Invalid Minecraft Username")
               .setDescription(`${resident} is not a Minecraft player!`)
-        )
+        ).then(msg => fn.delPrompt(msg, message.author.id))
       })
     if (!player) return;
 
     let reslistres = await fetch("https://earthmc.net/data/residents.txt")
     let reslist = (await reslistres.text()).split("\n")
     if (!reslist.includes(player.username)) {
-      await m.delete().catch(() => {})
-      return await message.channel.send(
+      return await m.edit(
         new Discord.RichEmbed()
           .setColor("RED")
           .setTitle("Resident Profile")
           .setDescription(`${player.username.replace(/_/g, "\\\_")} is not registered!`)
-      )
+      ).then(msg => fn.delPrompt(msg, message.author.id))
     }
     
     let discordres = await fetch("https://canary.discordapp.com/api/guilds/219863747248914433/widget.json")
@@ -106,7 +110,7 @@ module.exports = {
     embed.setFooter(`Registered`, client.user.avatarURL)
       .setTimestamp(parseInt(towny.registered))
     
-    await message.channel.send({files: [skinImage], embed: embed})
-    await m.delete().catch(() => {})
+    await m.edit({files: [skinImage], embed: embed})
+    // await m.delete().catch(() => {})
   }
 }

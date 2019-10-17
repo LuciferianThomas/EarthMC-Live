@@ -97,12 +97,10 @@ let modCaseEmbed = (client, thisCase) => {
   return embed
 }
 
-let paginator = async (author, msg, embeds, pageNow) => {
-  if (pageNow != 0) {
+let paginator = async (author, msg, embeds, pageNow, addReactions = true) => {
+  if (addReactions) {
     await msg.react("⏪")
     await msg.react("◀")
-  }
-  if (pageNow != embeds.length-1) {
     await msg.react("▶")
     await msg.react("⏩")
   }
@@ -110,22 +108,32 @@ let paginator = async (author, msg, embeds, pageNow) => {
   if (!reaction.size) return undefined
   reaction = reaction.first()
   if (reaction.emoji.name == "◀") {
-    let m = await msg.channel.send(embeds[Math.max(pageNow-1, 0)])
-    msg.delete()
-    paginator(author, m, embeds, Math.max(pageNow-1, 0))
+    let m = await msg.edit(embeds[Math.max(pageNow-1, 0)])
+    await reaction.remove(author)
+    paginator(author, m, embeds, Math.max(pageNow-1, 0), false)
   } else if (reaction.emoji.name == "▶") {
-    let m = await msg.channel.send(embeds[Math.min(pageNow+1, embeds.length-1)])
-    msg.delete()
-    paginator(author, m, embeds, Math.min(pageNow+1, embeds.length-1))
+    let m = await msg.edit(embeds[Math.min(pageNow+1, embeds.length-1)])
+    await reaction.remove(author)
+    paginator(author, m, embeds, Math.min(pageNow+1, embeds.length-1), false)
   } else if (reaction.emoji.name == "⏪") {
-    let m = await msg.channel.send(embeds[0])
-    msg.delete()
-    paginator(author, m, embeds, 0)
+    let m = await msg.edit(embeds[0])
+    await reaction.remove(author)
+    paginator(author, m, embeds, 0, false)
   } else if (reaction.emoji.name == "⏩") {
-    let m = await msg.channel.send(embeds[embeds.length-1])
-    msg.delete()
-    paginator(author, m, embeds, embeds.length-1)
+    let m = await msg.edit(embeds[embeds.length-1])
+    await reaction.remove(author)
+    paginator(author, m, embeds, embeds.length-1, false)
   }
+}
+
+let delPrompt = async (message, author) => {
+  await message.react("🗑")
+  let reaction = await message.awaitReactions(
+    (reaction, user) => user.id == author && reaction.emoji.name == "🗑",
+    {time: 10*1000, max: 1, errors: ['time']}
+  ).catch(() => message.clearReactions().catch(() => {}))
+  if (!reaction.size) return undefined
+  return await message.delete()
 }
 
 module.exports = {
@@ -140,5 +148,6 @@ module.exports = {
   getRole: getRole,
   ModCase: ModCase,
   modCaseEmbed: modCaseEmbed,
-  paginator: paginator
+  paginator: paginator,
+  delPrompt: delPrompt
 }

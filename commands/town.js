@@ -20,43 +20,49 @@ module.exports = {
       // if (discordlist.find(user => user.id == message.author.id) && discordlist.find(user => user.id == message.author.id).nick) {
       // } else 
       
-      return message.channel.send(
+      return await message.channel.send(
         new Discord.RichEmbed()
           .setColor("RED")
           .setTitle("Command Usage")
           .setDescription("`/town <name>`\n`/town list`")
-      )
+      ).then(msg => fn.delPrompt(msg, message.author.id))
     }
-    let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
     
     let listres = await fetch("https://earthmc.net/data/towns.txt")
     let townList = (await listres.text()).split("\n")
     let name = townList.find(n => n.toLowerCase() == req.toLowerCase().replace(/\s/gi, "_"))
     if (["here","leave","plots","new","add","kick","spawn","claim","unclaim",
          "withdraw","deposit","buy","delete","outlawlist","outlaw","outpost",
-         "ranklist","rank","reslist","say","set","toggle","join"].includes(args[0].toLowerCase()))
-      return message.channel.send(
+         "ranklist","rank","reslist","say","set","toggle","join"].includes(args[0].toLowerCase())){
+      return await message.channel.send(
         new Discord.RichEmbed()
           .setColor("RED")
           .setTitle("In-game Command")
-          .setDescription("This command is only accessible in-game.")
-      )
+          .setDescription(`\`/town ${args[0].toLowerCase()}\` is only accessible in-game.\nIf you want to send the command as text, add backticks \\\`\\\` around the text (i.e. \\\`/town ${args[0].toLowerCase()}\\\`)!`)
+      ).then(msg => fn.delPrompt(msg, message.author.id))
+    }
     
-    if (!name && args[0].toLowerCase() != "list") {
-      await m.delete().catch(() => {})
+    if (!name && args[0].toLowerCase() != "list")
       return await message.channel.send(
         new Discord.RichEmbed()
           .setColor("RED")
           .setTitle("Town Information")
           .setDescription(`${req} is not registered!`)
-      )
-    }
+      ).then(msg => fn.delPrompt(msg, message.author.id))
+    
+    let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
     
     let townyres = await fetch(`https://earthmc.net/data/towns/${name}.txt`)
     let townRaw = (await townyres.text()).split(/\n+/gi)
 
     let mapres = await fetch('https://earthmc.net/map/tiles/_markers_/marker_earth.json')
-    let mapdata = await mapres.json()
+    let mapdata = await mapres.json().catch(() => {})
+    if (!mapdata) return await message.channel.send(
+      new Discord.RichEmbed()
+        .setColor("RED")
+        .setTitle("Connection Issues")
+        .setDescription("We are currently unable to fetch the town information. Please try again later.")
+    ).then(msg => fn.delPrompt(msg, message.author.id))
 
     let townData = mapdata.sets['towny.markerset'].areas
     let townNames = Object.keys(townData)
@@ -151,7 +157,7 @@ module.exports = {
         .setTimestamp(new Date(parseInt(towny.registered)))
         .setFooter(`Created`, client.user.avatarURL)
 
-      message.channel.send(embed)
+      m.edit(embed)
     } else if (req.split(' ')[0] == 'list') {
         let allData = [""], i = 0, x = 0, page = 1
         if (req.split(' ')[1]) page = parseInt(req.split(' ')[1])
@@ -172,16 +178,14 @@ module.exports = {
         for (i = 0; i < allData.length; i++) {
           botembed[i] = new Discord.RichEmbed()
             .setColor(0x00fffff)
-            .setAuthor(`Town List (Page ${i+1}/${allData.length})`, client.user.avatarURL)
+            .setAuthor(`Town Information | Town List`, client.user.avatarURL)
             .setDescription("```" + allData[i] + "```")
             .setTimestamp()
-            .setFooter(`Provided by EarthMC Live`, client.user.avatarURL)
+            .setFooter(`Page ${i+1}/${allData.length}`, client.user.avatarURL)
         }
 
-        message.channel.send(botembed[page])
+        m.edit(botembed[page])
           .then(msg => fn.paginator(message.author.id, msg, botembed, page))
-
-    } else message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle(`${req} is not registered!`))
-    await m.delete().catch(() => {})
+    }
   }
 }

@@ -12,27 +12,49 @@ module.exports = {
   aliases: ["n"],
   run: async (client, message, args) => {
     let req = args.join(" ")
-    if (!req.length) return message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Command Usage").setDescription("`/nation <name>`\n`/nation list`"))
-    let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
+    if (!req.length)
+      return await message.channel.send(
+        new Discord.RichEmbed()
+          .setColor(0x00ffff)
+          .setTitle("Command Usage")
+          .setDescription("`/nation <name>`\n`/nation list`")
+      ).then(msg => fn.delPrompt(msg, message.author.id))
     
     let listres = await fetch("https://earthmc.net/data/nations.txt")
     let nationList = (await listres.text()).split("\n")
     let name = nationList.find(n => n.toLowerCase() == req.toLowerCase().replace(/\s/gi, "_"))
+    if (["online","leave","withdraw","deposit","new","rank","add",
+         "kick","delete","ally","enemy","rank","set","toggle"].includes(args[0].toLowerCase())){
+      return await message.channel.send(
+        new Discord.RichEmbed()
+          .setColor("RED")
+          .setTitle("In-game Command")
+          .setDescription(`\`/nation ${args[0].toLowerCase()}\` is only accessible in-game.\nIf you want to send the command as text, add backticks \\\`\\\` around the text (i.e. \\\`/nation ${args[0].toLowerCase()}\\\`)!`)
+      ).then(msg => fn.delPrompt(msg, message.author.id))
+    }
+    
     if (!name && args[0].toLowerCase() != "list") {
-      await m.delete().catch(() => {})
       return await message.channel.send(
         new Discord.RichEmbed()
           .setColor("RED")
           .setTitle("Nation Information")
           .setDescription(`${req} is not registered!`)
-      )
+      ).then(msg => fn.delPrompt(msg, message.author.id))
     }
+    
+    let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
     
     let townyres = await fetch(`https://earthmc.net/data/nations/${name}.txt`)
     let townRaw = (await townyres.text()).split(/\n+/gi)
 
     let mapres = await fetch('https://earthmc.net/map/tiles/_markers_/marker_earth.json')
-    let mapdata = await mapres.json()
+    let mapdata = await mapres.json().catch(() => {})
+    if (!mapdata) return await message.channel.send(
+      new Discord.RichEmbed()
+        .setColor("RED")
+        .setTitle("Connection Issues")
+        .setDescription("We are currently unable to fetch the nation information. Please try again later.")
+    ).then(msg => fn.delPrompt(msg, message.author.id))
 
     let townData = mapdata.sets['towny.markerset'].areas
     let townNames = Object.keys(townData)
@@ -173,9 +195,8 @@ module.exports = {
         }
         embed.addField(`Enem${towny.enemies.length == 1 ? "y" : "ies"} [${towny.enemies.length}]`, enemies)
       }
-
-
-      message.channel.send(embed)
+      
+      m.edit(embed)
     } else if (req.split(' ')[0] == 'list') {
       let allData = [""], i = 0, x = 0, page = 1
       if (req.split(' ')[1]) page = parseInt(req.split(' ')[1])
@@ -196,15 +217,14 @@ module.exports = {
       for (i = 0; i < allData.length; i++) {
         botembed[i] = new Discord.RichEmbed()
           .setColor(0x00fffff)
-          .setAuthor(`Nation List (Page ${i+1}/${allData.length})`, client.user.avatarURL)
+          .setAuthor(`Nation Information | Nation List`, client.user.avatarURL)
           .setDescription("```" + allData[i] + "```")
           .setTimestamp()
-          .setFooter(`Provided by EarthMC Live`, client.user.avatarURL)
+          .setFooter(`Page ${i+1}/${allData.length}`, client.user.avatarURL)
       }
 
-      message.channel.send(botembed[page])
+      m.edit(botembed[page])
         .then(msg => fn.paginator(message.author.id, msg, botembed, page))
     }
-    await m.delete().catch(() => {})
   }
 }

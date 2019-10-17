@@ -7,7 +7,7 @@ const fn = require('/app/bot/fn.js')
 
 module.exports = {
 	name: "ping",
-  aliases: ["message"],
+  aliases: ["mention"],
 	run: async (client, message, args) => {
   	if (message.guild.id != "569991565498515489" || !message.member.roles.find(r => r.name == 'Staff')) return;
 
