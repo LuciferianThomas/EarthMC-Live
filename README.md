@@ -1,27 +1,5 @@
-Welcome to Glitch
-=================
+# <img src="https://cdn.glitch.com/project-avatar/a6c3e914-2f8b-4671-9ef3-6e1afd821912.png?1566001504308" style="width:128px;"/> EarthMC Live Bot
 
-Click `Show` in the header to see your app live. Updates to your code will instantly deploy and update live.
+Get your queue, nation, town, player information offline!
 
-**Glitch** is the friendly community where you'll build the app of your dreams. Glitch lets you instantly create, remix, edit, and host an app, bot or site, and you can invite collaborators or helpers to simultaneously edit code with you.
-
-Find out more [about Glitch](https://glitch.com/about).
-
-
-Your Project
-------------
-
-On the front-end,
-- edit `public/client.js`, `public/style.css` and `views/index.html`
-- drag in `assets`, like images or music, to add them to your project
-
-On the back-end,
-- your app starts at `server.js`
-- add frameworks and packages in `package.json`
-- safely store app secrets in `.env` (nobody can see this but you and people you invite)
-
-
-Made by [Glitch](https://glitch.com/)
--------------------
-
-\ ゜o゜)ノ
+[Invite Link](https://discordapp.com/api/oauth2/authorize?client_id=590704855623008266&permissions=19456&scope=bot)
