@@ -29,9 +29,14 @@ const listener = app.listen(process.env.PORT, function() {
   }, 225000)
 });
 
-var towny = 0, classic = 0, fac = 0, server = 0, queue, update, online = {}, subs = allData.get('qsub')
-
-
+var towny = 0,
+    classic = 0,
+    fac = 0,
+    server = 0,
+    queue,
+    update,
+    online = {},
+    subs = allData.get("qsub")
 
 const client = new Discord.Client()
 
@@ -57,7 +62,7 @@ client.on('ready', async () => {
 	})
 
   setInterval(async () => {
-    const activities = [`EarthMC Live | /help`, `${client.guilds.size} Servers`, `${client.users.size} Users`, `${subs.length} Queue Updates`, `EarthMC Live | invite.gg/emcl`, `TCCGPlayz code`, `EarthMC Queue Live`]
+    const activities = [`EarthMC Live`, `for /help`, `${client.guilds.size} Servers`, `${client.users.size} Users`, `${subs.length} Queue Updates`, `EarthMC Live | invite.gg/emcl`, `LuciferianThomas code`, `EarthMC Queue Live`]
     const activity = activities[Math.floor(Math.random() * activities.length)]
     await client.user.setActivity(activity, { type: 'WATCHING' })
 		console.log(`${time()} | Activity Updated | Watching ${activity}`)
@@ -80,21 +85,29 @@ client.on('ready', async () => {
 				console.log(`${time()} | Channel ${subs[i]} not found. (${i+1}/${l})`)
 				continue;
 			}
-      if (!townydata) return await channel.send(
-        new Discord.RichEmbed()
-          .setColor("RED")
-          .setTitle("Connection Issues")
-          .setDescription("We are currently unable to fetch the queue information.\nPlease wait patiently until this is resolved.")
-      ).catch(() => {})
+      
+      if (!serverdata) {
+        await channel.send(
+          new Discord.RichEmbed()
+            .setColor("RED")
+            .setTitle("Connection Issues")
+            .setDescription("We are currently unable to ping the server.\nThis may be caused by the server being offline or a network issue.\nPlease try again later.")
+        ).catch(() => {})
+        continue;
+      }
+      
+      if (!townydata) {
+        await channel.send(
+          new Discord.RichEmbed()
+            .setColor("RED")
+            .setTitle("Connection Issues")
+            .setDescription("We are currently unable to fetch the queue information.\nPlease wait patiently until this is resolved.")
+        ).catch(() => {})
+        continue;
+      }
+      
       towny = townydata.currentcount
       online.towny = townydata.players
-      
-      if (!serverdata) return await channel.send(
-        new Discord.RichEmbed()
-          .setColor("RED")
-          .setTitle("Timed Out")
-          .setDescription("We are currently unable to ping the server.\nPlease wait patiently until this is resolved.")
-      ).catch(() => {})
       server = serverdata.players.online
 
       queue = server - towny
@@ -111,7 +124,7 @@ client.on('ready', async () => {
           .addField("Towny", `${towny >= 200 ? `**FULL** ${towny}` : towny}/200`, true)
           // .addField("Factions", `${fac >= 100 ? `**FULL** ${fac}` : fac}/100`, true)
           // .addField("Classic", `${classic >= 100 ? `**FULL** ${classic}` : classic}/100`, true)
-          .setFooter("Provided by EarthMC Live | Last Updated", client.user.avatarURL)
+          .setFooter("Last Updated", client.user.avatarURL)
           .setTimestamp(update)
 			).then(() => {
         console.log(`${time()} | Sent Queue Update ${i+1} of ${l}. (${channel.guild.name} #${channel.name})`)
@@ -151,15 +164,27 @@ client.on('message', async message => {
 
 		if (!command) return;
 		
-		let data = { towny: towny, queue: queue, fac: fac, classic: classic, update: update, online: online, subs: subs }
+		let data = {
+      towny: towny,
+      queue: queue,
+      fac: fac,
+      classic: classic,
+      update: update,
+      online: online,
+      subs: subs,
+      commandName: commandName
+    }
     
-		message.delete().catch(() => {})
+    message.channel.startTyping()
     
 		try {
 			await command.run(client, message, args, data)
 		} catch (error) {
 			console.log(error)
 		}
+    
+		message.delete().catch(() => {})
+    message.channel.stopTyping()
 	}
 		
 })
@@ -176,4 +201,3 @@ function calcPolygonArea(X, Y, numPoints) {
 }
 
 module.exports.area = calcPolygonArea
-

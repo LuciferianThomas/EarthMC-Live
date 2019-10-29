@@ -2,7 +2,6 @@ dependencies:
   better-sqlite-pool: 0.2.2
   browserify-fs: 1.0.0
   discord.js: 11.5.1
-  enmap: 5.1.0
   es6-shim: 0.35.5
   express: 4.17.1
   fs: 0.0.2
@@ -656,14 +655,6 @@ packages:
       node: '>= 0.8'
     resolution:
       integrity: sha1-rT/0yG7C0CkyL1oCw6mmBslbP1k=
-  /enmap/5.1.0:
-    dependencies:
-      lodash: 4.17.15
-    dev: false
-    peerDependencies:
-      better-sqlite3: ^5.4.0
-    resolution:
-      integrity: sha512-zZ4UuSu/3xRR/PTdYvjvFWkizT8qFOKNlxJO+Zj95f4emiXq5PolCtlLr/AijsmfaFfDcsotVjubkFf/H7unFg==
   /errno/0.1.7:
     dependencies:
       prr: 1.0.1
@@ -1934,7 +1925,6 @@ specifiers:
   better-sqlite-pool: ^0.2.2
   browserify-fs: ^1.0.0
   discord.js: ^11.5.1
-  enmap: ^5.1.0
   es6-shim: ^0.35.5
   express: ^4.16.4
   fs: ^0.0.2

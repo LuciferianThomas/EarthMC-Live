@@ -14,7 +14,7 @@ module.exports = {
     m.edit(
       new Discord.RichEmbed()
         .setColor(0x00ffff)
-        .setTitle("EarthMC Server Statistics")
+        .setTitle("Towny Statistics")
         .setThumbnail("https://earthmc.net/img/logo.png")
         .setDescription(`**Towns:** ${townList.length}\n**Nations:** ${nationList.length}\n**Residents:** ${residentList.length}`)
     )

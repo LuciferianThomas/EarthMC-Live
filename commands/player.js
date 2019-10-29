@@ -11,7 +11,7 @@ module.exports = {
   aliases: ["pl"],
   run: async (client, message, args, indexData) => {
     let resident = args[0]
-    if (!resident.length) return message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Command Usage").setDescription("`$player <name>`"))
+    if (!resident) return message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Command Usage").setDescription("`$player <name>`"))
     let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
      
     minecraft.players.get(resident).then(async player => {
@@ -111,7 +111,7 @@ module.exports = {
           let resNation = resTown.nation
 
           let status
-          if (indexData.online.towny.find(u => u.account == player.username)) status = "Towny"
+          if (indexData.online.towny && indexData.online.towny.find(u => u.account == player.username)) status = "Towny"
           //if (indexData.online.fac.find(u => u.account == player.username)) status = "Factions"
           //if (indexData.online.classic.find(u => u.account == player.username)) status = "Classic"
 

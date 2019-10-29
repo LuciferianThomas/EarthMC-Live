@@ -3,7 +3,8 @@ const Discord = require('discord.js'),
 			striptags = require('striptags'),
       minecraft = require('minecraft-lib'),
       jimp = require('jimp'),
-      fetch = require("node-fetch")
+      fetch = require("node-fetch"),
+      Minecraft = require("minecraft-lib")
 
 const index = require('../index.js'),
       fn = require('/app/bot/fn')
@@ -13,13 +14,22 @@ module.exports = {
   aliases: ["res"],
   run: async (client, message, args, indexData) => {
     let resident = args[0]
-    if (!resident.length)
+    if (!resident)
       return await message.channel.send(
         new Discord.RichEmbed()
           .setColor(0x00ffff)
           .setTitle("Command Usage")
           .setDescription("`/resident <name>`")
       ).then(msg => fn.delPrompt(msg, message.author.id))
+
+    let serverdata = await Minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577).catch(() => {})
+    if (!serverdata) return await message.channel.send(
+      new Discord.RichEmbed()
+        .setColor("RED")
+        .setTitle("Connection Issues")
+        .setDescription("We are currently unable to ping the server.\nThis may be caused by the server being offline or a network issue.\nPlease try again later.")
+    ).then(msg => fn.delPrompt(msg, message.author.id))
+    
     let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
      
     let player = await minecraft.players.get(resident)
@@ -40,6 +50,15 @@ module.exports = {
 
     let reslistres = await fetch("https://earthmc.net/data/residents.txt")
     let reslist = (await reslistres.text()).split("\n")
+    if (reslist[0] == "<!DOCTYPE html>") return await message.channel.send(
+      new Discord.RichEmbed()
+        .setColor("RED")
+        .setTitle("Connection Issues")
+        .setDescription("We are having connection issues with the server. Please try again later.")
+    ).then(msg => {
+      m.delete()
+      fn.delPrompt(msg, message.author.id)
+    })
     if (!reslist.includes(player.username)) {
       return await m.edit(
         new Discord.RichEmbed()
@@ -55,6 +74,15 @@ module.exports = {
     
     let townyres = await fetch(`https://earthmc.net/data/residents/${player.username}.txt`)
     let townRaw = (await townyres.text()).split(/\n+/g)
+    if (townRaw[0] == "<!DOCTYPE html>") return await message.channel.send(
+      new Discord.RichEmbed()
+        .setColor("RED")
+        .setTitle("Connection Issues")
+        .setDescription("We are having connection issues with the server. Please try again later.")
+    ).then(msg => {
+      m.delete()
+      fn.delPrompt(msg, message.author.id)
+    })
     
     let towny = {}
     for (let i = 0; i < townRaw.length; i++) {
@@ -110,7 +138,8 @@ module.exports = {
     embed.setFooter(`Registered`, client.user.avatarURL)
       .setTimestamp(parseInt(towny.registered))
     
-    await m.edit({files: [skinImage], embed: embed})
+    await m.delete()
+    await message.channel.send({files: [skinImage], embed: embed})
     // await m.delete().catch(() => {})
   }
 }

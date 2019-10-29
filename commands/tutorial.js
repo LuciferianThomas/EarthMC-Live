@@ -70,10 +70,18 @@ module.exports = {
       })
     ]
     
-    for (var i = 0; i < embeds.length; i++)
+    embeds.unshift(
+      fn.embed(client, {
+        title: "EarthMC Tutorial",
+        description:
+          `**Table of Contents**\n${embeds.map(embed => `${embeds.indexOf(embed)+1} - ${embed.title}`).join("\n")}`
+      })
+    )
+    
+    for (var i = 1; i < embeds.length; i++)
       embeds[i]
         .setThumbnail("https://cdn.discordapp.com/icons/219863747248914433/87cf881c3e3d30c110ce09aec902d419.jpg")
-        .setFooter(`Page ${i+1}/${embeds.length}`)
+        .setFooter(`Page ${i}/${embeds.length-1}`)
     
     let msg = await message.channel.send(embeds[!isNaN(parseInt(args[0])) ? parseInt(args[0]) : 0])
     fn.paginator(message.author.id, msg, embeds, !isNaN(parseInt(args[0])) ? parseInt(args[0]) : 0)

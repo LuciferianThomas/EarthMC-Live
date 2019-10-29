@@ -108,20 +108,20 @@ let paginator = async (author, msg, embeds, pageNow, addReactions = true) => {
   if (!reaction.size) return undefined
   reaction = reaction.first()
   if (reaction.emoji.name == "◀") {
-    let m = await msg.edit(embeds[Math.max(pageNow-1, 0)])
     await reaction.remove(author)
+    let m = await msg.edit(embeds[Math.max(pageNow-1, 0)])
     paginator(author, m, embeds, Math.max(pageNow-1, 0), false)
   } else if (reaction.emoji.name == "▶") {
-    let m = await msg.edit(embeds[Math.min(pageNow+1, embeds.length-1)])
     await reaction.remove(author)
+    let m = await msg.edit(embeds[Math.min(pageNow+1, embeds.length-1)])
     paginator(author, m, embeds, Math.min(pageNow+1, embeds.length-1), false)
   } else if (reaction.emoji.name == "⏪") {
-    let m = await msg.edit(embeds[0])
     await reaction.remove(author)
+    let m = await msg.edit(embeds[0])
     paginator(author, m, embeds, 0, false)
   } else if (reaction.emoji.name == "⏩") {
-    let m = await msg.edit(embeds[embeds.length-1])
     await reaction.remove(author)
+    let m = await msg.edit(embeds[embeds.length-1])
     paginator(author, m, embeds, embeds.length-1, false)
   }
 }
@@ -132,7 +132,7 @@ let delPrompt = async (message, author) => {
     (reaction, user) => user.id == author && reaction.emoji.name == "🗑",
     {time: 10*1000, max: 1, errors: ['time']}
   ).catch(() => message.clearReactions().catch(() => {}))
-  if (!reaction.size) return undefined
+  if (!reaction) return undefined
   return await message.delete()
 }
 
