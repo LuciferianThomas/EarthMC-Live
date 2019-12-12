@@ -67,36 +67,6 @@ let getRole = (guild, data) => {
   throw Error('Cannot find role.')
 }
 
-function ModCase (client, id, type, member, moderator, reason, period) {
-  this.id = parseInt(id)
-  this.type = type.toUpperCase()
-  this.user = getUser(client, member).id
-  this.moderator = getUser(client, moderator).id
-  this.reason = reason
-  this.time = moment()
-  this.period = period
-  this.active = true
-}
-
-let modCaseEmbed = (client, thisCase) => {  
-  // if (!(thisCase instanceof ModCase)) throw Error('Passed an invalid ModCase.')
-  
-  let user = getUser(client, thisCase.user)
-  let moderator = getUser(client, thisCase.moderator)
-
-  let embed = new Discord.RichEmbed()
-    .setColor(embedColor)
-    .setAuthor(`[${thisCase.type}] ${user.tag}`, user.displayAvatarURL)
-    .addField(user.bot ? "Bot" : "User", user, true)
-    .addField("Moderator", moderator, true)
-  if (thisCase.period) embed.addField("Period", `${thisCase.period/1000/60} minute${thisCase.period/1000/60 == 1 ? "" : "s"}`, true)
-  embed.addField("Reason", thisCase.reason)
-    .setFooter(`Case #${thisCase.id}`, client.user.avatarURL)
-    .setTimestamp(moment(thisCase.time))
-
-  return embed
-}
-
 let paginator = async (author, msg, embeds, pageNow, addReactions = true) => {
   if (addReactions) {
     await msg.react("⏪")
@@ -104,8 +74,8 @@ let paginator = async (author, msg, embeds, pageNow, addReactions = true) => {
     await msg.react("▶")
     await msg.react("⏩")
   }
-  let reaction = await msg.awaitReactions((reaction, user) => user.id == author && ["◀","▶","⏪","⏩"].includes(reaction.emoji.name), {time: 30*1000, max:1, errors: ['time']}).catch(() => msg.clearReactions().catch(() => {}))
-  if (!reaction.size) return undefined
+  let reaction = await msg.awaitReactions((reaction, user) => user.id == author && ["◀","▶","⏪","⏩"].includes(reaction.emoji.name), {time: 30*1000, max:1, errors: ['time']}).catch(() => {})
+  if (!reaction) return msg.clearReactions().catch(() => {})
   reaction = reaction.first()
   if (reaction.emoji.name == "◀") {
     await reaction.remove(author)
@@ -146,8 +116,6 @@ module.exports = {
   getUser: getUser,
   getMember: getMember,
   getRole: getRole,
-  ModCase: ModCase,
-  modCaseEmbed: modCaseEmbed,
   paginator: paginator,
   delPrompt: delPrompt
 }

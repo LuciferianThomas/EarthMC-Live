@@ -10,11 +10,31 @@ const Discord = require('discord.js'),
       db = require('quick.db'),
       allData = new db.table('allData'),
       fetch = require('node-fetch'),
-      minecraft = require('minecraft-lib')
+      minecraft = require('minecraft-lib'),
+      fn = require("/app/bot/fn")
+    , plotly = require("plotly")("LuciferianThomas", process.env.PLOTLY)
 
+
+ var evilDns = require('evil-dns')
+ evilDns.add('earthmc.net', '54.37.205.68');
+
+ // what is this module that doesn't work
 let time = (t) => {
 	return moment(t).utcOffset(8).format("YYYY/MM/DD HH:mm:ss")
 }
+
+function calcPolygonArea(X, Y, numPoints) { 
+	let area = 0					// Accumulates area in the loop
+	let j = numPoints-1		// The last vertex is the 'previous' one to the first
+
+	for (let i=0; i<numPoints; i++)
+		{ area = area +	(X[j]+X[i]) * (Y[j]-Y[i]) 
+			j = i							//j is previous vertex to i
+		}
+	return Math.abs(area/2)
+}
+
+module.exports.area = calcPolygonArea
 
 const app = express()
 app.use(express.static('public'));
@@ -53,8 +73,9 @@ for (const file of commandFiles) {
 
 client.on('ready', async () => {
 	console.log(`${time()} | EarthMC Live Bot is up!`)
-	client.user.setPresence({
-		status: 'online',
+  
+	await client.user.setPresence({
+		status: 'dnd',
 		game: {
 			name: `EarthMC Live | /help`,
 			type: "WATCHING"
@@ -63,19 +84,21 @@ client.on('ready', async () => {
 
   setInterval(async () => {
     const activities = [`EarthMC Live`, `for /help`, `${client.guilds.size} Servers`, `${client.users.size} Users`, `${subs.length} Queue Updates`, `EarthMC Live | invite.gg/emcl`, `LuciferianThomas code`, `EarthMC Queue Live`]
+          // [`EarthMC Live`, `for /help`, `${client.guilds.size} Servers`, `${client.users.size} Users`, `EarthMC Live | invite.gg/emcl`, `LuciferianThomas code`, `Partial Service Suspension`]
     const activity = activities[Math.floor(Math.random() * activities.length)]
     await client.user.setActivity(activity, { type: 'WATCHING' })
 		console.log(`${time()} | Activity Updated | Watching ${activity}`)
   }, 30000);
 	
 	setInterval(async () => {
+    // return;
 		var l = subs.length
     
     let townyres = await fetch("https://earthmc.net/map/up/world/earth/")
     let townydata = await townyres.json()
       .catch(() => console.log(`${time()} | Connection Issues: Cannot fetch queue information.`))
 
-    let serverdata = await minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577)
+    let serverdata = await minecraft.servers.get("earthmc.net",25565)
       .catch(() => console.log(`${time()} | Connection Issues: Server ping timed out.`))
     
 		for (var i = 0; i < l; i++) {
@@ -135,6 +158,105 @@ client.on('ready', async () => {
 	}, 1000*60)
 })
 
+setInterval(async () => {
+  let mapres = await fetch(
+    "https://earthmc.net/map/tiles/_markers_/marker_earth.json"
+  )
+  let mapdata = await mapres.json().catch(() => {})
+  if (!mapdata) return;
+
+  let townData = mapdata.sets["towny.markerset"].areas
+  let townNames = Object.keys(townData)
+  let towns = []
+  for (let i = 0; i < townNames.length; i++) {
+    let town = townData[townNames[i]]
+    let rawinfo = town.desc.split("<br />")
+    let info = []
+    rawinfo.forEach(x => {
+      info.push(striptags(x))
+    })
+    let name = info[0]
+      .split(" (")[0]
+      .replace(/_/gi, " ")
+      .trim()
+    if (name.endsWith("(Shop)")) continue
+    if (towns.find(town => town.name == name)) {
+      towns[towns.indexOf(towns.find(town => town.name == name))].area +=
+        calcPolygonArea(town.x, town.z, town.x.length) / 16 / 16
+      continue
+    }
+    let thisTown = {
+      area: calcPolygonArea(town.x, town.z, town.x.length) / 16 / 16,
+      x: Math.round((Math.max(...town.x) + Math.min(...town.x)) / 2),
+      z: Math.round((Math.max(...town.z) + Math.min(...town.z)) / 2),
+      name: name,
+      nation:
+        info[0].split(" (")[1].slice(0, -1) == ""
+          ? "No Nation"
+          : info[0]
+              .split(" (")[1]
+              .slice(0, -1)
+              .replace(/_/gi, " ")
+              .trim(),
+      mayor: info[1].slice(7),
+      residents: info[2].slice(12).split(", ")
+    }
+    towns.push(thisTown)
+  }
+
+  towns.sort((a, b) => {
+    if (b.residents.length > a.residents.length) return 1
+    if (b.residents.length < a.residents.length) return -1
+
+    if (b.area > a.area) return 1
+    if (b.area < a.area) return -1
+
+    if (b.name.toLowerCase() < a.name.toLowerCase()) return 1
+    if (b.name.toLowerCase() > a.name.toLowerCase()) return -1
+
+    return 0
+  })
+
+  let allData = towns.map(town => `${town.name} (${town.nation}) | ${town.residents.length} | ${town.area}`)
+    .join('\n').match(/(?:^.*$\n?){1,10}/mg)
+
+  let botembed = []
+  let data = [{
+    x: towns.slice(0,10).map(town => town.name),
+    y: towns.slice(0,10).map(town => town.residents.length),
+    name: "Residents",
+    type: "bar",
+    showlegend: false
+  },
+  {x:towns.slice(0,10).map(town => town.name), y: [0], type: 'bar', hoverinfo: 'none', showlegend: false},
+  {x:towns.slice(0,10).map(town => town.name), y: [0], type: 'bar', yaxis: 'y2', hoverinfo: 'none', showlegend: false},
+  {
+    x: towns.slice(0,10).map(town => town.name),
+    y: towns.slice(0,10).map(town => town.area),
+    yaxis: "y2",
+    name: "Area",
+    type: "bar",
+    showlegend: false
+  }], graphOptions = {
+    layout: {
+      title: 'Top 10 Towns on the EarthMC Server',
+      barmode: "group",
+      yaxis: {
+        title: "Residents"
+      },
+      "yaxis2": {
+        title: "Area",
+        overlaying: "y",
+        side: "right"
+      }
+    },
+    filename: "top-towns",
+    fileopt: "overwrite"
+  }
+
+  plotly.plot(data, graphOptions)
+}, 1000*60)
+
 client.on('guildMemberAdd', async member => {
 	if (member.guild.id != '569991565498515489') return;
 	member.user.send(
@@ -151,10 +273,9 @@ client.on('guildMemberAdd', async member => {
 
 client.on('message', async message => {
 	if (message.author.bot) return;
-
-	console.log(`${time()} | ${message.channel.type == 'dm' ? message.author.tag : `${message.guild.name} #${message.channel.name} | ${message.author.tag}`} > ${message.cleanContent}`)
-
-	
+  var log = `${time()} | ${message.channel.type == 'dm' ? message.author.tag : `${message.guild.name} #${message.channel.name} | ${message.author.tag}`} > ${message.cleanContent}`
+	console.log(log)
+  client.channels.get("569994012455469056").send(log)
 	if (message.content.startsWith("$") || message.content.startsWith("/")) {
 		
 		let args = message.content.slice(1).split(/\s+/u)
@@ -163,6 +284,16 @@ client.on('message', async message => {
 		const command = client.commands.get(commandName) || client.commands.find((cmd) => cmd.aliases && cmd.aliases.includes(commandName))
 
 		if (!command) return;
+    
+    if (["town", "nation", "resident", "statistics"].includes(command.name) && args[0].toLowerCase() != "list"
+        // && message.author.id != "336389636878368770" && message.author.id != "199260034130116610"
+       ) await message.channel.send(
+      new Discord.RichEmbed()
+        .setColor("RED")
+        .setTitle(":warning: Warning")
+        .setDescription(`\`/${command.name}\` is currently outdated as per **[this announcement](https://discordapp.com/channels/569991565498515489/569999498718478366/639071479715332096)**.\n> There have been reports on <@590704855623008266> bot being unable to provide up-to-date information. The follow is Karl's explanation on why that happens, since I can do nothing to fix it yet. Please wait patiently until Fix and Karl finishes maintenance on the website and the data source.`)
+        .setImage("https://media.discordapp.net/attachments/569999498718478366/639071479174004737/Screenshot_2019-10-30-19-57-45-941_com.discord.png")
+    )
 		
 		let data = {
       towny: towny,
@@ -181,6 +312,13 @@ client.on('message', async message => {
 			await command.run(client, message, args, data)
 		} catch (error) {
 			console.log(error)
+      client.channels.get("644408004938039316").send(
+        new Discord.RichEmbed()
+          .setColor("RED")
+          .setTitle("Error Caught")
+          .setDescription(`Error caught when ${message.author.tag} executed \`/${message.content.slice(1)}\`.`)
+          .addField("Error Message", "```" + error + "```")
+      )
 		}
     
 		message.delete().catch(() => {})
@@ -188,16 +326,3 @@ client.on('message', async message => {
 	}
 		
 })
-
-function calcPolygonArea(X, Y, numPoints) { 
-	let area = 0					// Accumulates area in the loop
-	let j = numPoints-1		// The last vertex is the 'previous' one to the first
-
-	for (let i=0; i<numPoints; i++)
-		{ area = area +	(X[j]+X[i]) * (Y[j]-Y[i]) 
-			j = i							//j is previous vertex to i
-		}
-	return Math.abs(area/2)
-}
-
-module.exports.area = calcPolygonArea

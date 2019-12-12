@@ -8,7 +8,9 @@ module.exports = {
   name: "queue",
   aliases: ["q"],
   run: async (bot, message, args) => {
-    let serverdata = await Minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577).catch(() => {})
+    let serverdata = await Minecraft.servers.get("earthmc.net",25565).catch(() => {}) 
+    // this used to work fine, idk why it doesn't now
+    // not sure if this is related to DNS (cache?) again
     if (!serverdata) return await message.channel.send(
       new Discord.RichEmbed()
         .setColor("RED")

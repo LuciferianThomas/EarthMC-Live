@@ -11,7 +11,7 @@ const index = require('../index.js'),
 
 module.exports = {
   name: "resident",
-  aliases: ["res"],
+  aliases: ["res", "player", "pl"],
   run: async (client, message, args, indexData) => {
     let resident = args[0]
     if (!resident)
@@ -22,13 +22,13 @@ module.exports = {
           .setDescription("`/resident <name>`")
       ).then(msg => fn.delPrompt(msg, message.author.id))
 
-    let serverdata = await Minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577).catch(() => {})
+    /*let serverdata = await Minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577).catch(() => {})
     if (!serverdata) return await message.channel.send(
       new Discord.RichEmbed()
         .setColor("RED")
         .setTitle("Connection Issues")
         .setDescription("We are currently unable to ping the server.\nThis may be caused by the server being offline or a network issue.\nPlease try again later.")
-    ).then(msg => fn.delPrompt(msg, message.author.id))
+    ).then(msg => fn.delPrompt(msg, message.author.id))*/
     
     let m = await message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Fetching data..."))
      

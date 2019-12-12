@@ -14,7 +14,7 @@ module.exports = {
       .setAuthor("Server Status", "https://earthmc.net/img/logo.png")
     
     let ping1a = new Date()
-    let serverdata = await Minecraft.servers.get("dc-f626de6d73b7.earthmc.net",25577).catch(() => {})
+    let serverdata = await Minecraft.servers.get("earthmc.net",25565).catch(() => {})
     let ping1b = new Date()
     if (serverdata) embed.addField("Server", "Online", true)
     else            embed.addField("Server", "Connection Timed Out", true)

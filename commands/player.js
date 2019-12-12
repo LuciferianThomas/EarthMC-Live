@@ -7,8 +7,8 @@ const Discord = require('discord.js'),
 const index = require('../index.js')
 
 module.exports = {
-  name: "player",
-  aliases: ["pl"],
+  name: "player(dep)",
+  aliases: ["pl(dep)"],
   run: async (client, message, args, indexData) => {
     let resident = args[0]
     if (!resident) return message.channel.send(new Discord.RichEmbed().setColor(0x00ffff).setTitle("Command Usage").setDescription("`$player <name>`"))

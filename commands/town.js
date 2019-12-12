@@ -1,8 +1,9 @@
 const Discord = require("discord.js"),
-  https = require("https"),
-  striptags = require("striptags"),
-  fetch = require("node-fetch"),
-  Minecraft = require("minecraft-lib")
+      https = require("https"),
+      striptags = require("striptags"),
+      fetch = require("node-fetch"),
+      Minecraft = require("minecraft-lib")
+    , plotly = require("plotly")("LuciferianThomas", process.env.PLOTLY)
 
 const index = require("../index.js")
 
@@ -164,27 +165,16 @@ module.exports = {
         return 0
       })
 
-      let allData = [""],
-        i = 0,
-        x = 0,
-        page = 1
+      let i = 0, x = 0, page = 1
       if (req.split(" ")[1]) page = parseInt(req.split(" ")[1])
       if (isNaN(page)) page = 0
       else page--
-      for (let j = 0; j < towns.length; j++) {
-        let town = towns[j]
-        if (i++ == 10) {
-          i = 1
-          x++
-          allData.push("")
-        }
-        allData[
-          x
-        ] += `${town.name} (${town.nation}) | ${town.residents.length} | ${town.area}\n`
-      }
+      
+      let allData = towns.map(town => `${town.name} (${town.nation}) | ${town.residents.length} | ${town.area}`)
+        .join('\n').match(/(?:^.*$\n?){1,10}/mg)
 
       let botembed = []
-
+      
       for (i = 0; i < allData.length; i++) {
         botembed[i] = new Discord.RichEmbed()
           .setColor(0x00fffff)
@@ -220,7 +210,7 @@ module.exports = {
       if (!(typeof townRaw[i] == "string" && townRaw[i].length)) continue
       let index = townRaw[i].split("=")[0],
         data = townRaw[i].split("=")[1]
-      if (index != "residents" && index != "mayor") data = data.replace(/_/g, " ")
+      if (index != "residents" && index != "mayor" && index != "outlaws") data = data.replace(/_/g, " ")
       if (
         ["residents", "outlaws", "homeBlock", "protectionStatus"].includes(
           index
