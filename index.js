@@ -273,9 +273,9 @@ client.on('guildMemberAdd', async member => {
 
 client.on('message', async message => {
 	if (message.author.bot) return;
-  var log = `${time()} | ${message.channel.type == 'dm' ? message.author.tag : `${message.guild.name} #${message.channel.name} | ${message.author.tag}`} > ${message.cleanContent}`
-	console.log(log)
-  client.channels.get("569994012455469056").send(log)
+  //var log = `${time()} | ${message.channel.type == 'dm' ? message.author.tag : `${message.guild.name} #${message.channel.name} | ${message.author.tag}`} > ${message.cleanContent}`
+	//console.log(log)
+  //client.channels.get("569994012455469056").send(log)
 	if (message.content.startsWith("$") || message.content.startsWith("/")) {
 		
 		let args = message.content.slice(1).split(/\s+/u)
